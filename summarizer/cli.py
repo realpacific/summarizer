@@ -51,7 +51,7 @@ Constraints:
 Content to summarize:
 {content}"""
 
-LLM = init_chat_model(max_tokens=1024, configurable_fields=["model", "base_url"])
+LLM = init_chat_model(configurable_fields=["model", "base_url", "max_tokens"])
 
 
 def _call_model(content: str, configurable: dict) -> str:
@@ -93,6 +93,35 @@ def _chat_loop(content: str, summary: str, configurable: dict) -> None:
         console.print(answer, style="bold", markup=False)
 
 
+def _ensure_provider_installed(provider: Provider) -> None:
+    import importlib.util
+    import subprocess
+
+    from rich.live import Live
+    from rich.spinner import Spinner as RichSpinner
+    from rich.text import Text
+
+    if importlib.util.find_spec(provider.import_name) is not None:
+        return
+
+    msg = Text.assemble(
+        "One-time setup: installing ",
+        (provider.name, "green"),
+        "…",
+    )
+    with Live(RichSpinner("dots", text=msg), console=spinner, transient=True, refresh_per_second=10):
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "install", provider.package_name],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    if result.returncode != 0:
+        spinner.print(f"[red]Error:[/red] Failed to install {provider.package_name}")
+        sys.exit(1)
+    spinner.print(f"[green]✓[/green] Installed support for {provider.name}. Please run your command again.")
+    sys.exit(0)
+
+
 def main() -> None:
     # Exact `summarizer init` (and nothing else) runs the setup wizard.
     if sys.argv[1:] == ["init"]:
@@ -104,6 +133,7 @@ def main() -> None:
         cfg = run_setup()
 
     provider = Provider.registry[cfg["provider"]]
+    _ensure_provider_installed(provider)
 
     parser = argparse.ArgumentParser(description="Summarize text or an article at a URL.")
     parser.add_argument("input", nargs="?", default="-", help="Text, URL, or - to read from stdin")
