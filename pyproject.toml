@@ -5,13 +5,10 @@ description = "CLI tool to summarize text and articles at URLs"
 requires-python = ">=3.11"
 dependencies = [
     "langchain>=0.3.0",
-    "langchain-anthropic>=0.3.0",
-    "langchain-google-genai>=2.0.0",
     "trafilatura>=2.0.0",
     "questionary>=2.0.0",
-    "langchain-openai>=0.3.0",
-    "langchain-ollama>=0.3.0",
     "rich>=13.0.0",
+    "pip",
 ]
 
 [project.scripts]
