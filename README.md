@@ -1,9 +1,10 @@
 # summarizer
 
-CLI tool that summarizes text or articles at a URL using an LLM.
-Supports Anthropic (Claude), OpenAI (GPT), Google (Gemini), and local Ollama models.
+![](https://img.shields.io/github/v/tag/realpacific/summarizer?style=for-the-badge&logo=github&color=7c3aed)
 
-Pair it with [realpacific/readthis](https://github.com/realpacific/readthis) to turn any summary into on-demand audio.
+
+CLI tool that summarizes text or articles at a URL using LLM.
+Supports Anthropic (Claude), OpenAI (GPT), Google (Gemini), and local Ollama models.
 
 ## Install
 
@@ -17,6 +18,10 @@ Run the interactive wizard to choose a provider, model, and API key:
 
 ```bash
 summarizer init
+
+#? Choose a provider: Anthropic (Claude)
+#? Choose a model: claude-haiku-4-5
+#? Enter your Anthropic (Claude) API key: ****************
 ```
 
 Re-run it anytime to switch providers or models.
@@ -45,7 +50,9 @@ pbpaste | summarizer
 
 ## Summarizer + TTS
 
-Install [realpacific/readthis](https://github.com/realpacific/readthis):
+Pair it with [realpacific/readthis](https://github.com/realpacific/readthis) to turn any summary into on-demand audio.
+
+Install `realpacific/readthis`:
 
 ```bash
 uv tool install --python 3.12 git+https://github.com/realpacific/readthis
