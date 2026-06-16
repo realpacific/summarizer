@@ -1095,7 +1095,6 @@ wheels = [
 
 [[package]]
 name = "summarizer"
-version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "langchain" },

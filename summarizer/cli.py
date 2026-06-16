@@ -105,7 +105,7 @@ def _ensure_provider_installed(provider: Provider) -> None:
         return
 
     msg = Text.assemble(
-        "One-time setup: installing ",
+        "Initiating one-time setup for ",
         (provider.name, "green"),
         "…",
     )
@@ -118,7 +118,7 @@ def _ensure_provider_installed(provider: Provider) -> None:
     if result.returncode != 0:
         spinner.print(f"[red]Error:[/red] Failed to install {provider.package_name}")
         sys.exit(1)
-    spinner.print(f"[green]✓[/green] Installed support for {provider.name}. Please run your command again.")
+    spinner.print(f"[green]✓[/green] Enabled support for {provider.name}")
     sys.exit(0)
 
 
@@ -126,6 +126,11 @@ def main() -> None:
     # Exact `summarizer init` (and nothing else) runs the setup wizard.
     if sys.argv[1:] == ["init"]:
         run_setup()
+        cfg = load_config()
+        if cfg is None:
+            return
+        provider = Provider.registry[cfg["provider"]]
+        _ensure_provider_installed(provider)
         return
 
     cfg = load_config()

@@ -30,8 +30,9 @@ For initial one-time setup, `run_setup()` drives the `questionary` arrow-key men
 LLM Providers are modeled as a `Provider` abstract base class; each concrete provider (like Anthropic, Gemini and so on)
 is a subclass that self-registers into `Provider.registry` via `__init_subclass__`.
 
-To add a provider, define one `Provider` subclass in `providers.py` plus installing its `langchain-<provider>` package.
+To add a provider, define `Provider` subclass in `providers.py`. The `package_name` MUST correspond to a langchain package.
+For e.g. langchain-anthropic for Anthropic. It will be installed dynamically when needed via `_ensure_provider_installed`
 
 `cli.py`** — runtime logic: argument parsing, URL content extraction (trafilatura), the summarization prompt, model
-invocation via LangChain. 
-The exact invocation `summarizer init` (no other args) runs the setup wizard. 
+invocation via LangChain.
+The exact invocation `summarizer init` (no other args) runs the setup wizard.
