@@ -184,9 +184,10 @@ def main() -> None:
             console.print(content, markup=False)
             _chat_loop(content, llm_config)
         else:
+            summary = ""
             with spinner.status(f"Summarizing using [bold]{llm_config['model']}[/bold]…", spinner="dots"):
                 summary = _call_model(content, llm_config)
-                console.print(summary, markup=False)
+            console.print(summary, markup=False)
 
     except Exception as e:
         spinner.print(f"[red]Error:[/red] {e}")

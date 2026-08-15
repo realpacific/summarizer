@@ -41,8 +41,8 @@ cat file.txt | summarizer
 # Override the model for one run
 summarizer --model claude-haiku-4-5 https://prashantbarahi.com.np/blog/your-readme-md-is-obsolete
 
-# Summarize then enter a follow-up chat
-summarizer --ask https://prashantbarahi.com.np/blog/your-readme-md-is-obsolete
+# Enter a follow-up chat with the content
+summarizer https://prashantbarahi.com.np/blog/your-readme-md-is-obsolete --ask
 
 # For dynamic pages or paywalled content, copy to clipboard and pipe:
 pbpaste | summarizer
