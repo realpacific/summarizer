@@ -6,6 +6,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from rich.console import Console
 
 from summarizer.config import Provider, build_llm_config, load_config, run_setup
+from summarizer.prompts import DEFAULT_STYLE, Style, build_prompt
 
 spinner = Console(stderr=True)  # spinners / errors → stderr
 console = Console(highlight=False)  # summary / answers → stdout
@@ -31,38 +32,12 @@ def _fetch_url(url: str) -> str:
     return text
 
 
-PROMPT = """\
-Summarize the following content. Write in plain text only — no markdown, no bullet symbols, \
-no asterisks, no pound signs, no dashes as list markers.
-
-Structure your response into:
-
-* Title and a concise description of what this content is about and what to expect.
-Ignore any author names or publication dates or any metadata. Just give a descriptive title and the essence.
-* The important facts, arguments, or takeaways, each as a short paragraph or sentences.
-Keep it as short as possible while still conveying the main ideas.
-* Conclude with the main insight or outcome from the content.
-
-Constraints:
-- No fluff and no repetitions
-- Do not label or title any section. Never output words like "Title", "Description", "Conclusion", "Summary",
-"Key Takeaways", or any other heading. Output ONLY the raw content of each section, back to back.
-- Preserve important data.
-- If the language is in a non-English language, respond to in English.
-- Maintain an objective, neutral tone, no personal commentary.
-- Strictly rely only on the provided text .
-- Focus on the core arguments and skip minor digressions or anecdotes.
-- Keep sentences concise and easy to read.
-
-Content to summarize:
-{content}"""
-
 LLM = init_chat_model(configurable_fields=["model", "base_url", "max_tokens"])
 
 
-def _call_model(content: str, configurable: dict) -> str:
+def _call_model(content: str, configurable: dict, style: str) -> str:
     response = LLM.invoke(
-        [HumanMessage(content=PROMPT.format(content=content))],
+        [HumanMessage(content=build_prompt(content, style))],
         config={
             "configurable": configurable
         },
@@ -77,9 +52,9 @@ def _chat_loop(content: str, configurable: dict) -> None:
 
     system = (
         "You are a helpful assistant answering questions about the following content. "
-        "Answer only based on what is in the content. If the answer is not in the content, say so."
-        "If the question is unrelated to the content, say so and do not answer from general knowledge."
-        "No markdown or any formatting, just plain text answers with clear paragraphs. Be concise and to the point."
+        "Answer only based on what is in the content. If the answer is not in the content, say so. "
+        "If the question is unrelated to the content, say so and do not answer from general knowledge. "
+        "No markdown or any formatting, just plain text answers with clear paragraphs. Be concise and to the point. "
         f"Here is the content:\n{content}"
     )
     history: list[BaseMessage] = [
@@ -157,12 +132,26 @@ def main() -> None:
         choices=provider.models,
         help="Override the configured model for this run",
     )
+    styles = "; ".join(f"{s.name} — {s.description}" for s in Style.registry.values())
+    parser.add_argument(
+        "--style",
+        default=None,
+        choices=list(Style.registry),
+        help=f"How to shape the summary (default: {DEFAULT_STYLE}); not valid with --ask. "
+        # argparse %-formats help text, so a literal % in a style description must be escaped.
+        + styles.replace("%", "%%"),
+    )
     parser.add_argument(
         "--ask",
         action="store_true",
         help="Enable follow-up question mode after summarizing",
     )
     args = parser.parse_args()
+
+    # --ask never summarizes, so a style would be silently ignored.
+    if args.ask and args.style is not None:
+        parser.error("--style cannot be used with --ask")
+    style = args.style or DEFAULT_STYLE
 
     llm_config = build_llm_config(cfg, args.model)
 
@@ -181,12 +170,11 @@ def main() -> None:
             spinner.print("[red]No content to summarize.[/red]")
             sys.exit(1)
         if args.ask:
-            console.print(content, markup=False)
             _chat_loop(content, llm_config)
         else:
             summary = ""
             with spinner.status(f"Summarizing using [bold]{llm_config['model']}[/bold]…", spinner="dots"):
-                summary = _call_model(content, llm_config)
+                summary = _call_model(content, llm_config, style)
             console.print(summary, markup=False)
 
     except Exception as e:
