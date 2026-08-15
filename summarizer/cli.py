@@ -65,6 +65,10 @@ def _call_model(content: str, configurable: dict) -> str:
 
 
 def _chat_loop(content: str, summary: str, configurable: dict) -> None:
+    # input() does not support arrow keys or backspace, so we use readline for better input handling.
+    # https://stackoverflow.com/questions/14796323/input-using-backspace-and-arrow-keys
+    import readline  # noqa: F401
+
     system = (
         "You are a helpful assistant answering questions about the following content. "
         "Answer only based on what is in the content. If the answer is not in the content, say so."
