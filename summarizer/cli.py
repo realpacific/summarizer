@@ -2,7 +2,7 @@ import argparse
 import sys
 
 from langchain.chat_models import init_chat_model
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from rich.console import Console
 
 from summarizer.config import Provider, build_llm_config, load_config, run_setup
@@ -19,7 +19,13 @@ def _fetch_url(url: str) -> str:
     import trafilatura
 
     content = trafilatura.fetch_url(url)
-    text = trafilatura.extract(content)
+    text = trafilatura.extract(
+        content,
+        output_format="markdown",
+        include_links=True,
+        include_images=True,
+        include_tables=True,
+    )
     if not text:
         raise ValueError(f"Could not extract content from {url}")
     return text
@@ -64,7 +70,7 @@ def _call_model(content: str, configurable: dict) -> str:
     return response.text
 
 
-def _chat_loop(content: str, summary: str, configurable: dict) -> None:
+def _chat_loop(content: str, configurable: dict) -> None:
     # input() does not support arrow keys or backspace, so we use readline for better input handling.
     # https://stackoverflow.com/questions/14796323/input-using-backspace-and-arrow-keys
     import readline  # noqa: F401
@@ -74,11 +80,10 @@ def _chat_loop(content: str, summary: str, configurable: dict) -> None:
         "Answer only based on what is in the content. If the answer is not in the content, say so."
         "If the question is unrelated to the content, say so and do not answer from general knowledge."
         "No markdown or any formatting, just plain text answers with clear paragraphs. Be concise and to the point."
+        f"Here is the content:\n{content}"
     )
-    history = [
+    history: list[BaseMessage] = [
         SystemMessage(content=system),
-        HumanMessage(content=PROMPT.format(content=content)),
-        AIMessage(content=summary),
     ]
     spinner.print("\n[dim]Ask a follow-up question (Ctrl+C or Ctrl+D to quit)[/dim]")
     while True:
@@ -175,12 +180,14 @@ def main() -> None:
         if not content:
             spinner.print("[red]No content to summarize.[/red]")
             sys.exit(1)
-
-        with spinner.status(f"Summarizing using [bold]{llm_config['model']}[/bold]…", spinner="dots"):
-            summary = _call_model(content, llm_config)
-        console.print(summary, markup=False)
         if args.ask:
-            _chat_loop(content, summary, llm_config)
+            console.print(content, markup=False)
+            _chat_loop(content, llm_config)
+        else:
+            with spinner.status(f"Summarizing using [bold]{llm_config['model']}[/bold]…", spinner="dots"):
+                summary = _call_model(content, llm_config)
+                console.print(summary, markup=False)
+
     except Exception as e:
         spinner.print(f"[red]Error:[/red] {e}")
         sys.exit(1)
