@@ -1,4 +1,5 @@
 import argparse
+import os
 import sys
 
 from langchain.chat_models import init_chat_model
@@ -45,7 +46,36 @@ def _call_model(content: str, configurable: dict, style: str) -> str:
     return response.text
 
 
+def _reattach_stdin_to_tty() -> bool:
+    """Point stdin back at the terminal.
+
+    With `pbpaste | summarizer --ask` stdin is the exhausted pipe, so input()
+    would raise EOFError immediately and the chat loop would exit at once.
+    Re-opening /dev/tty onto fd 0 restores interactive input (and readline).
+    """
+    try:
+        tty = open("/dev/tty")
+    except OSError:
+        return False
+    try:
+        os.dup2(tty.fileno(), 0)
+    finally:
+        tty.close()
+    stdin = os.fdopen(0, "r")
+    sys.stdin = stdin
+    # input() only uses readline when sys.stdin is still the startup object, so
+    # rebind that too.
+    # Type checkers mark it Final; it is writable at runtime.
+    setattr(sys, "__stdin__", stdin)
+    return True
+
+
 def _chat_loop(content: str, configurable: dict) -> None:
+    # Reattach before importing readline, which binds to stdin on import.
+    if not sys.stdin.isatty() and not _reattach_stdin_to_tty():
+        spinner.print("[red]--ask needs a terminal for input.[/red]")
+        sys.exit(1)
+
     # input() does not support arrow keys or backspace, so we use readline for better input handling.
     # https://stackoverflow.com/questions/14796323/input-using-backspace-and-arrow-keys
     import readline  # noqa: F401
